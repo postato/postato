@@ -8,7 +8,7 @@ This is a **TypeScript + SuperTest API testing framework** that converts Postman
 - **Framework**: SuperTest (HTTP assertions library)
 - **Language**: TypeScript
 - **Test Runner**: Jest
-- **Input Format**: Postman Collection v2.1 JSON
+- **Input Format**: Postman Collection v2.1 JSON + Optional Environment files + Optional SSL certificates
 - **Output**: Structured test files mirroring Postman folder hierarchy
 - **Purpose**: Migration from Postman collections to code-based API testing
 
@@ -34,33 +34,120 @@ When a user provides a `postman_collection.json` file, you will:
 
 ---
 
-## 📥 Input: Postman Collection
+## ⚙️ Template Configuration System
 
-### Expected Location
+This template uses a **feature flag pattern** controlled by `src/config/template.config.ts`. All code patterns are active; configuration determines runtime behavior.
+
+**Key Configuration File:**
+```typescript
+// src/config/template.config.ts
+export const ARCHITECTURE = {
+  SINGLE: 'single',
+  MICROSERVICES: 'microservices',
+} as const;
+
+export const AUTH_PATTERN = {
+  SINGLE: 'single',
+  MULTIPLE: 'multiple',
+} as const;
+
+export const TEMPLATE_CONFIG = {
+  architecture: ARCHITECTURE.SINGLE as ArchitectureType,
+  authPattern: AUTH_PATTERN.SINGLE as AuthPatternType,
+  sslEnabled: false,
+  services: {
+    MAIN: 'main',
+    PAYMENTS: 'payments',
+    NOTIFICATIONS: 'notifications',
+  } as const,
+  tokenTypes: {
+    ADMIN: 'admin',
+    SERVICE_ACCOUNT: 'serviceAccount',
+    CLIENT: 'client',
+  } as const,
+};
+```
+
+**⚠️ IMPORTANT: Override Strategy**
+
+When detecting services/tokens from Postman environment files:
+
+1. **REPLACE the entire `services` object** with detected services
+2. **REPLACE the entire `tokenTypes` object** with detected tokens
+3. **DO NOT merge** with template defaults
+
+**Why?** The template defaults (`MAIN`, `PAYMENTS`, `NOTIFICATIONS`) are placeholders. User's actual API may have completely different services (`ANALYTICS`, `BILLING`, `INVENTORY`).
+
+**Example:**
+```typescript
+// ❌ WRONG - Don't merge with defaults
+services: {
+  MAIN: 'main',
+  PAYMENTS: 'payments',
+  ANALYTICS: 'analytics',
+}
+
+// ✅ CORRECT - Replace entirely
+services: {
+  ANALYTICS: 'analytics',
+  BILLING: 'billing',
+  INVENTORY: 'inventory',
+}
+```
+
+---
+
+**When analyzing Postman collections, you must:**
+
+1. **Detect Architecture Pattern:**
+   - Single base URL → `ARCHITECTURE.SINGLE`
+   - Multiple service URLs → `ARCHITECTURE.MICROSERVICES`
+
+2. **Detect Auth Pattern:**
+   - One auth token → `AUTH_PATTERN.SINGLE`
+   - Multiple auth tokens (admin, user, service) → `AUTH_PATTERN.MULTIPLE`
+
+3. **Detect SSL Requirements:**
+   - Certificates in `certs/` folder → `sslEnabled: true`
+   - No certificates → `sslEnabled: false`
+
+4. **Update template.config.ts accordingly**
+
+All utility files (`auth-helper.ts`, `request-builder.ts`, environment configs) automatically adapt based on these settings. No code commenting/uncommenting required.
+
+---
+
+## 📥 Input: What You'll Receive from Users
+
+Users will provide up to three types of inputs:
+
+### Input 1: Postman Collection (REQUIRED)
+
+**Expected Location:**
 ```
 postman/v{X}/postman_collection.json
 ```
 Where `{X}` is the version number (v1, v2, v3, etc.)
 
-### Collection Structure You'll Encounter
+**Collection Structure:**
 ```json
 {
   "info": {
     "name": "Collection Name",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "auth": { ... },           // Collection-level auth
-  "variable": [ ... ],       // Collection variables
-  "item": [                  // Folders and requests
+  "auth": { ... },
+  "variable": [ ... ],
+  "item": [
     {
       "name": "Folder Name",
-      "item": [ ... ]        // Nested requests or sub-folders
+      "item": [ ... ]
     }
   ]
 }
 ```
 
-### Key Elements to Extract
+**Key Elements to Extract:**
 
 | Element | Purpose | Target Location |
 |---------|---------|-----------------|
@@ -71,6 +158,45 @@ Where `{X}` is the version number (v1, v2, v3, etc.)
 | `request.url.raw` | API endpoints | Request wrappers and tests |
 | `request.header` | Default headers | Request wrapper functions |
 | `response` | Example responses | Fixtures and JSON schemas |
+
+---
+
+### Input 2: Postman Environment Files (OPTIONAL)
+
+**Expected Location:**
+```
+postman/v{X}/dev.postman_environment.json
+postman/v{X}/staging.postman_environment.json
+postman/v{X}/prod.postman_environment.json
+```
+
+**Structure:**
+```json
+{
+  "name": "Development Environment",
+  "values": [
+    { "key": "baseUrl", "value": "https://api.dev.example.com", "enabled": true },
+    { "key": "paymentsApiUrl", "value": "https://payments-api.dev.example.com", "enabled": true },
+    { "key": "auth_token", "value": "", "type": "secret", "enabled": true }
+  ]
+}
+```
+
+**Purpose:** Auto-detect architecture/auth patterns, pre-fill environment variables, discover service/token names
+
+---
+
+### Input 3: SSL Certificates (OPTIONAL)
+
+**Expected Location:**
+```
+certs/
+├── dev-ca.crt
+├── staging-ca.crt
+└── prod-ca.crt
+```
+
+**Purpose:** Enable testing against APIs with self-signed certificates or internal CAs
 
 ---
 
@@ -461,9 +587,42 @@ export const getProductById = async (authToken: string, productId: number) => {
 
 **1. `src/config/environments/dev.env.ts`**
 ```typescript
+import * as dotenv from 'dotenv';
+import {
+  TEMPLATE_CONFIG,
+  ARCHITECTURE,
+  AUTH_PATTERN,
+} from '../template.config';
+
+dotenv.config({ path: '.env.development' });
+
 export const devConfig = {
   baseUrl: process.env.DEV_BASE_URL || 'https://api.dev.example.com',
   apiKey: process.env.DEV_API_KEY || '',
+
+  // Microservices - only included if TEMPLATE_CONFIG.architecture === ARCHITECTURE.MICROSERVICES
+  ...(TEMPLATE_CONFIG.architecture === ARCHITECTURE.MICROSERVICES && {
+    services: {
+      [TEMPLATE_CONFIG.services.MAIN]: process.env.DEV_MAIN_API_URL || 'https://api.dev.example.com',
+      [TEMPLATE_CONFIG.services.PAYMENTS]: process.env.DEV_PAYMENTS_API_URL || 'https://payments-api.dev.example.com',
+      [TEMPLATE_CONFIG.services.NOTIFICATIONS]: process.env.DEV_NOTIFICATIONS_API_URL || 'https://notifications-api.dev.example.com',
+    },
+  }),
+
+  // Multiple Auth - only included if TEMPLATE_CONFIG.authPattern === AUTH_PATTERN.MULTIPLE
+  ...(TEMPLATE_CONFIG.authPattern === AUTH_PATTERN.MULTIPLE && {
+    auth: {
+      [TEMPLATE_CONFIG.tokenTypes.ADMIN]: process.env.DEV_ADMIN_TOKEN || '',
+      [TEMPLATE_CONFIG.tokenTypes.SERVICE_ACCOUNT]: process.env.DEV_SERVICE_ACCOUNT_TOKEN || '',
+      [TEMPLATE_CONFIG.tokenTypes.CLIENT]: process.env.DEV_CLIENT_TOKEN || '',
+    },
+  }),
+
+  ssl: {
+    enabled: TEMPLATE_CONFIG.sslEnabled && process.env.DEV_SSL_ENABLED === 'true',
+    certPath: process.env.DEV_SSL_CERT_PATH || '',
+  },
+
   timeout: 5000,
   retryAttempts: 3,
   headers: {
@@ -565,7 +724,7 @@ export const authConfig: AuthConfig = {
 };
 ```
 
-**The existing `src/utils/auth-helper.ts` already handles Bearer token authentication.**
+**The template's `src/utils/auth-helper.ts` handles Bearer token authentication automatically.**
 
 ---
 
@@ -615,7 +774,30 @@ If `auth` is not present or type is `noauth`, skip authentication setup and don'
 3. Parse JSON file
 ```
 
-### Step 2: Extract Collection Metadata
+### Step 1.5: Scan for Optional Inputs
+
+Check what additional files the user provided:
+
+```typescript
+const versionFolder = 'postman/v1'; // or v2, v3, etc.
+
+const envFiles = ['dev', 'staging', 'prod']
+  .map(env => `${versionFolder}/${env}.postman_environment.json`)
+  .filter(file => fs.existsSync(file));
+
+const certFiles = fs.existsSync('certs/')
+  ? fs.readdirSync('certs/').filter(f => /\.(crt|pem|key|cer|p12|pfx)$/.test(f))
+  : [];
+```
+
+**Workflow Branches:**
+- If `envFiles.length > 0` → Execute **Step 2B**
+- If `certFiles.length > 0` → Execute **Step 2C**
+- Otherwise → Skip to **Step 3**
+
+---
+
+### Step 2: Extract Collection Metadata and Configure Template
 ```typescript
 // Parse collection
 const collection = JSON.parse(collectionFile);
@@ -625,10 +807,193 @@ const collectionName = collection.info.name;
 const authConfig = collection.auth;
 const variables = collection.variable;
 
-// Generate configurations
+// Analyze architecture pattern
+const hasMultipleUrls = detectMultipleServiceUrls(variables);
+const hasMultipleAuthTokens = detectMultipleAuthTokens(variables);
+
+// Update src/config/template.config.ts
+→ Set TEMPLATE_CONFIG.architecture to ARCHITECTURE.MICROSERVICES if hasMultipleUrls, else ARCHITECTURE.SINGLE
+→ Set TEMPLATE_CONFIG.authPattern to AUTH_PATTERN.MULTIPLE if hasMultipleAuthTokens, else AUTH_PATTERN.SINGLE
 → Update src/config/auth.config.ts based on authConfig
 → Update environment files based on variables
 → Update .env.example with all variables
+```
+
+### Step 2B: Parse Postman Environment Files (Optional)
+
+**Execute this step ONLY if Step 1.5 detected environment files.**
+
+**Detection Already Done in Step 1.5:**
+```typescript
+const envFiles = ['dev', 'staging', 'prod']
+  .map(env => `${versionFolder}/${env}.postman_environment.json`)
+  .filter(file => fs.existsSync(file));
+```
+
+**Processing Loop:**
+```typescript
+for (const envFile of envFiles) {
+  const envData = JSON.parse(fs.readFileSync(envFile, 'utf-8'));
+  const envName = path.basename(envFile, '.postman_environment.json'); // 'dev', 'staging', or 'prod'
+  
+  // Process each environment's variables
+  processEnvironmentVariables(envData.values, envName);
+}
+```
+
+---
+
+**Postman Environment JSON Structure:**
+```json
+{
+  "name": "Environment Name",
+  "values": [
+    { "key": "baseUrl", "value": "https://api.dev.example.com", "enabled": true },
+    { "key": "paymentsApiUrl", "value": "https://payments-api.dev.example.com", "enabled": true },
+    { "key": "auth_token", "value": "", "type": "secret", "enabled": true },
+    { "key": "admin_token", "value": "", "type": "secret", "enabled": true }
+  ]
+}
+```
+
+**Variable Classification Rules:**
+
+1. **Identify Base URLs:**
+   - Keys: `baseUrl`, `base_url`, `apiUrl`, `api_url`, `url`, `host`
+   - If **single URL** → Set `ARCHITECTURE.SINGLE`
+   - If **multiple URLs** → Set `ARCHITECTURE.MICROSERVICES`
+
+2. **Identify Service URLs:**
+   - Keys ending with: `ApiUrl`, `_api_url`, `Url`, `_url`, `Api`, `_api`
+   - Examples: `paymentsApiUrl`, `notificationsApiUrl`, `mainApiUrl`
+
+3. **Identify Auth Tokens:**
+   - Keys containing: `token`, `auth`, `apikey`, `api_key`, `key`
+   - If **single auth variable** → Set `AUTH_PATTERN.SINGLE`
+   - If **multiple auth variables** → Set `AUTH_PATTERN.MULTIPLE`
+
+**Configuration Strategy:**
+
+**1. Update `src/config/template.config.ts`:**
+```typescript
+// If single URL detected
+architecture: ARCHITECTURE.SINGLE
+
+// If multiple service URLs detected
+architecture: ARCHITECTURE.MICROSERVICES
+
+// If single auth token detected
+authPattern: AUTH_PATTERN.SINGLE
+
+// If multiple auth tokens detected
+authPattern: AUTH_PATTERN.MULTIPLE
+```
+
+**2. Populate Environment Variables:**
+All environment configs automatically adapt based on `template.config.ts` settings. Just populate `.env.example`:
+
+```env
+# Single architecture
+DEV_BASE_URL=https://api.dev.example.com
+
+# Microservices (if ARCHITECTURE.MICROSERVICES is active)
+DEV_MAIN_API_URL=https://api.dev.example.com
+DEV_PAYMENTS_API_URL=https://payments-api.dev.example.com
+
+# Multiple auth (if AUTH_PATTERN.MULTIPLE is active)
+DEV_ADMIN_TOKEN=
+DEV_CLIENT_TOKEN=
+```
+
+---
+
+**Service & Token Name Transformation Rules:**
+
+**Pattern 1: Service URLs**
+```
+Postman Variable     → Extract Keyword  → Constant Name → Value
+paymentsApiUrl       → payments         → PAYMENTS      → 'payments'
+notificationsApiUrl  → notifications    → NOTIFICATIONS → 'notifications'
+mainApiUrl           → main             → MAIN          → 'main'
+analyticsUrl         → analytics        → ANALYTICS     → 'analytics'
+```
+
+**Pattern 2: Auth Tokens**
+```
+Postman Variable     → Extract Keyword  → Constant Name     → Value
+admin_token          → admin            → ADMIN             → 'admin'
+service_account_token → serviceAccount  → SERVICE_ACCOUNT   → 'serviceAccount'
+client_token         → client           → CLIENT            → 'client'
+user_api_key         → user             → USER              → 'user'
+```
+
+**Extraction Algorithm:**
+1. **Service Names**: Strip suffixes (`ApiUrl`, `Url`, `_api_url`, `_url`) → lowercase for value
+2. **Token Types**: Strip suffixes (`_token`, `_auth`, `_key`) → convert snake_case to camelCase
+3. **Constant Names**: Convert camelCase to SCREAMING_SNAKE_CASE
+
+**Example**: `paymentsApiUrl` → extract "payments" → constant `PAYMENTS`, value `'payments'`
+
+**For detailed implementation with edge case handling, see:** [Implementation Reference](#-implementation-reference)
+
+---
+
+**Communication to User:**
+```
+✅ Detected Postman environment files
+   - Architecture: ARCHITECTURE.MICROSERVICES
+   - Services found: main, payments, notifications
+   - Auth pattern: AUTH_PATTERN.MULTIPLE
+   
+Updated files:
+- src/config/template.config.ts (configured patterns)
+- .env.example (added service URLs and token variables)
+```
+
+### Step 2C: Detect and Configure SSL Certificates (Optional)
+
+**When to Use:** If `certs/` folder contains certificate files.
+
+**Certificate Detection:**
+```typescript
+// Check for certificate files
+const certFiles = fs.readdirSync('certs/')
+  .filter(f => /\.(crt|pem|key)$/.test(f));
+
+// Match to environments
+const certMap = {
+  dev: certFiles.find(f => f.includes('dev')),
+  staging: certFiles.find(f => f.includes('staging')),
+  prod: certFiles.find(f => f.includes('prod')),
+};
+```
+
+**1. Update `src/config/template.config.ts`:**
+```typescript
+// If certificates detected, enable SSL
+sslEnabled: true
+```
+
+**2. Populate `.env.example`:**
+```env
+# SSL Configuration (if sslEnabled is true)
+DEV_SSL_ENABLED=false
+DEV_SSL_CERT_PATH=certs/dev-ca.crt
+STAGING_SSL_ENABLED=false
+STAGING_SSL_CERT_PATH=certs/staging-ca.crt
+```
+
+**Communication to User:**
+```
+✅ SSL certificates detected in certs/ folder:
+   - dev-ca.crt → Development environment
+   - staging-ca.crt → Staging environment
+   
+Updated files:
+- src/config/template.config.ts (sslEnabled: true)
+- .env.example (added SSL variables)
+
+To enable SSL: Set DEV_SSL_ENABLED=true in .env.development
 ```
 
 ### Step 3: Traverse Collection Items (Recursive)
@@ -654,8 +1019,8 @@ For each request (e.g., "Get User Profile" in "Users" folder):
 
 1. **Determine paths:**
    ```typescript
-   const folderPath = 'users'; // from Postman folder
-   const requestName = 'get-user-profile'; // from Postman request name
+   const folderPath = 'users';
+   const requestName = 'get-user-profile';
    
    testFile = `src/tests/${folderPath}/${requestName}.test.ts`
    requestFile = `src/requests/${folderPath}/${requestName}.request.ts`
@@ -956,6 +1321,99 @@ You've successfully converted a Postman collection when:
 ✅ Schema validation passes for all responses  
 ✅ Authentication flow works correctly  
 ✅ Both happy and error paths are tested  
+
+---
+
+## 📚 Implementation Reference
+
+> **Purpose:** Authoritative implementations for edge cases and ambiguous variable naming scenarios.  
+> **When to use:** Consult these functions when variable names don't match standard patterns or when precision is critical for correct code generation.
+
+### Service Name Extraction
+
+**Standard Patterns:** `{name}ApiUrl`, `{name}Url`, `{name}_api_url`, `{name}_url`
+
+```typescript
+function extractServiceName(varKey: string): string {
+  // Priority order: try longest suffixes first to avoid partial matches
+  const suffixes = [/ApiUrl$/i, /_api_url$/i, /Url$/i, /_url$/i];
+  
+  for (const suffix of suffixes) {
+    if (suffix.test(varKey)) {
+      return varKey.replace(suffix, '').toLowerCase();
+    }
+  }
+  
+  // No suffix found - return as-is in lowercase
+  return varKey.toLowerCase();
+}
+```
+
+**Edge Cases:**
+
+| Input | Output | Reasoning |
+|-------|--------|-----------|
+| `paymentsApiUrl` | `payments` | Standard pattern, strips `ApiUrl` |
+| `mainUrl` | `main` | Strips shorter suffix `Url` |
+| `userApiUrlEndpoint` | `userapiurlendpoint` | No match (suffix not at end) |
+| `ANALYTICS_API_URL` | `analytics` | Case-insensitive match, strips `_api_url` |
+| `mainApiUrl` | `main` | Strips `ApiUrl` (longer suffix has priority) |
+| `api_url` | `` | Empty result (entire string is suffix) |
+
+---
+
+### Token Type Extraction
+
+**Standard Patterns:** `{name}_token`, `{name}_auth`, `{name}_key`
+
+```typescript
+function extractTokenType(varKey: string): string {
+  const suffixes = [/_token$/i, /_auth$/i, /_key$/i];
+  
+  let cleaned = varKey;
+  for (const suffix of suffixes) {
+    if (suffix.test(cleaned)) {
+      cleaned = cleaned.replace(suffix, '');
+      break;
+    }
+  }
+  
+  // Convert snake_case to camelCase
+  return cleaned.replace(/_([a-z])/g, (_, char) => char.toUpperCase());
+}
+```
+
+**Edge Cases:**
+
+| Input | Output | Reasoning |
+|-------|--------|-----------|
+| `admin_token` | `admin` | Standard pattern, strips `_token` |
+| `service_account_token` | `serviceAccount` | Strips `_token`, converts to camelCase |
+| `CLIENT_API_KEY` | `clientApi` | Case-insensitive, strips `_key`, converts case |
+| `user_auth` | `user` | Strips `_auth` suffix |
+
+---
+
+### Constant Name Conversion
+
+**Purpose:** Convert camelCase/snake_case identifiers to SCREAMING_SNAKE_CASE for constant names.
+
+```typescript
+function toConstantName(str: string): string {
+  return str
+    .replace(/([a-z])([A-Z])/g, '$1_$2')  // Insert underscore between camelCase transitions
+    .toUpperCase();
+}
+```
+
+**Examples:**
+
+| Input | Output |
+|-------|--------|
+| `payments` | `PAYMENTS` |
+| `serviceAccount` | `SERVICE_ACCOUNT` |
+| `main` | `MAIN` |
+| `userApi` | `USER_API` |
 
 ---
 

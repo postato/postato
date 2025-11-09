@@ -25,4 +25,7 @@ module.exports = {
     '^@types/(.*)$': '<rootDir>/src/types/$1',
   },
   testTimeout: 30000,
+  // Global test setup file
+  // Configures SSL certificates, global timeouts, and other test environment settings
+  setupFilesAfterEnv: ['<rootDir>/src/test-setup/jest.setup.ts'],
 };

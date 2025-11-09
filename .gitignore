@@ -14,6 +14,29 @@ coverage/
 .env.staging
 .env.production
 
+# SSL Certificates (SECURITY: Never commit certificates!)
+certs/*.crt
+certs/*.pem
+certs/*.key
+certs/*.cer
+certs/*.p12
+certs/*.pfx
+
+# Keep folder structure and documentation
+!certs/.gitkeep
+!certs/README.md
+
+# Postman environment files (may contain sensitive data)
+# User's actual environment exports
+postman/**/*.postman_environment.json
+
+# Keep example/template environment files (with architecture prefixes)
+!postman/**/SIMPLE_*.postman_environment.json
+!postman/**/MICROSERVICES_*.postman_environment.json
+
+# Keep collection files
+!postman/**/postman_collection.json
+
 # IDE
 .vscode/
 .idea/
@@ -49,3 +72,6 @@ junit.xml
 tmp/
 temp/
 .cache/
+
+# Context
+.context/

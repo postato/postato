@@ -1,17 +1,77 @@
 /**
  * Request Builder Utility
  * Provides helper functions for building SuperTest requests with common configurations
+ *
+ * Behavior automatically adapts based on src/config/template.config.ts
  */
 
-import request, { Test, SuperTest } from 'supertest';
+import request, { Test } from 'supertest';
 import { getConfig } from '../config/environments';
+import {
+  TEMPLATE_CONFIG,
+  ARCHITECTURE,
+  ServiceName,
+} from '../config/template.config';
 
 /**
  * Create a SuperTest request instance with base configuration
+ *
+ * For SINGLE architecture: createRequest()
+ * For MICROSERVICES architecture: createRequest(TEMPLATE_CONFIG.services.PAYMENTS)
+ *
+ * @param serviceName - Required if architecture is ARCHITECTURE.MICROSERVICES
+ * @returns SuperTest instance configured for the specified service or base URL
+ *
+ * @example
+ * // Single API pattern
+ * const api = createRequest();
+ * await api.get('/users').expect(200);
+ *
+ * @example
+ * // Microservices pattern
+ * const paymentsApi = createRequest(TEMPLATE_CONFIG.services.PAYMENTS);
+ * await paymentsApi.get('/transactions').expect(200);
  */
-export const createRequest = () => {
+export const createRequest = (serviceName?: ServiceName) => {
   const config = getConfig();
-  return request(config.baseUrl);
+
+  // =================================
+  // SINGLE ARCHITECTURE
+  // =================================
+  if (TEMPLATE_CONFIG.architecture === ARCHITECTURE.SINGLE) {
+    return request(config.baseUrl);
+  }
+
+  // =================================
+  // MICROSERVICES ARCHITECTURE
+  // =================================
+  if (TEMPLATE_CONFIG.architecture === ARCHITECTURE.MICROSERVICES) {
+    if (!serviceName) {
+      serviceName = TEMPLATE_CONFIG.services.MAIN;
+    }
+
+    const services = (config as any).services;
+
+    if (!services) {
+      throw new Error(
+        `Services not configured in environment file\n` +
+          `Ensure your environment config includes the services object when using ARCHITECTURE.MICROSERVICES`
+      );
+    }
+
+    if (!services[serviceName]) {
+      const availableServices = Object.keys(services).join(', ');
+      throw new Error(
+        `Service "${serviceName}" not configured in environment\n` +
+          `Available services: ${availableServices}\n` +
+          `Add ${serviceName.toUpperCase()}_API_URL to your .env file`
+      );
+    }
+
+    return request(services[serviceName]);
+  }
+
+  throw new Error(`Invalid architecture: ${TEMPLATE_CONFIG.architecture}`);
 };
 
 /**
@@ -56,40 +116,63 @@ export const withQueryParams = (req: Test, params: Record<string, any>): Test =>
 
 /**
  * Helper to build a GET request with common setup
+ * 
+ * @param path - Request path
+ * @param token - Optional authentication token
+ * @param serviceName - Optional service name for microservices
  */
-export const buildGetRequest = (path: string, token?: string): Test => {
-  const req = createRequest().get(path);
+export const buildGetRequest = (path: string, token?: string, serviceName?: ServiceName): Test => {
+  const req = createRequest(serviceName).get(path);
   return token ? withAuth(req, token) : req;
 };
 
 /**
  * Helper to build a POST request with common setup
+ * 
+ * @param path - Request path
+ * @param body - Request body
+ * @param token - Optional authentication token
+ * @param serviceName - Optional service name for microservices
  */
-export const buildPostRequest = (path: string, body: any, token?: string): Test => {
-  const req = createRequest().post(path).send(body);
+export const buildPostRequest = (path: string, body: any, token?: string, serviceName?: ServiceName): Test => {
+  const req = createRequest(serviceName).post(path).send(body);
   return token ? withAuth(req, token) : req;
 };
 
 /**
  * Helper to build a PUT request with common setup
+ * 
+ * @param path - Request path
+ * @param body - Request body
+ * @param token - Optional authentication token
+ * @param serviceName - Optional service name for microservices
  */
-export const buildPutRequest = (path: string, body: any, token?: string): Test => {
-  const req = createRequest().put(path).send(body);
+export const buildPutRequest = (path: string, body: any, token?: string, serviceName?: ServiceName): Test => {
+  const req = createRequest(serviceName).put(path).send(body);
   return token ? withAuth(req, token) : req;
 };
 
 /**
  * Helper to build a PATCH request with common setup
+ * 
+ * @param path - Request path
+ * @param body - Request body
+ * @param token - Optional authentication token
+ * @param serviceName - Optional service name for microservices
  */
-export const buildPatchRequest = (path: string, body: any, token?: string): Test => {
-  const req = createRequest().patch(path).send(body);
+export const buildPatchRequest = (path: string, body: any, token?: string, serviceName?: ServiceName): Test => {
+  const req = createRequest(serviceName).patch(path).send(body);
   return token ? withAuth(req, token) : req;
 };
 
 /**
  * Helper to build a DELETE request with common setup
+ * 
+ * @param path - Request path
+ * @param token - Optional authentication token
+ * @param serviceName - Optional service name for microservices
  */
-export const buildDeleteRequest = (path: string, token?: string): Test => {
-  const req = createRequest().delete(path);
+export const buildDeleteRequest = (path: string, token?: string, serviceName?: ServiceName): Test => {
+  const req = createRequest(serviceName).delete(path);
   return token ? withAuth(req, token) : req;
 };
