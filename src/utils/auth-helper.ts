@@ -5,9 +5,9 @@
  * Behavior automatically adapts based on src/config/template.config.ts
  */
 
-import request from 'supertest';
 import { getConfig } from '../config/environments';
 import { authConfig } from '../config/auth.config';
+import { createRequest } from './request-builder';
 import {
   TEMPLATE_CONFIG,
   AUTH_PATTERN,
@@ -51,7 +51,7 @@ const tokenCache: SingleTokenCache | MultiTokenCache =
  * Get authentication token
  *
  * For SINGLE auth pattern: getAuthToken()
- * For MULTIPLE auth pattern: getAuthToken(TEMPLATE_CONFIG.tokenTypes.ADMIN)
+ * For MULTIPLE auth pattern: getAuthToken(TEMPLATE_CONFIG.tokenTypes.AUTH)
  *
  * @param tokenType - Required if authPattern is AUTH_PATTERN.MULTIPLE
  * @returns Authentication token string
@@ -93,14 +93,10 @@ export const getAuthToken = async (tokenType?: TokenType): Promise<string> => {
   // MULTIPLE AUTH PATTERN
   // =================================
   if (TEMPLATE_CONFIG.authPattern === AUTH_PATTERN.MULTIPLE) {
+    // Default to first token type if none provided
     if (!tokenType) {
-      const availableTypes = Object.values(TEMPLATE_CONFIG.tokenTypes).join(
-        ', '
-      );
-      throw new Error(
-        `Token type required for MULTIPLE auth pattern. Available types: ${availableTypes}\n` +
-          `Example: getAuthToken(TEMPLATE_CONFIG.tokenTypes.ADMIN)`
-      );
+      const firstTokenKey = Object.keys(TEMPLATE_CONFIG.tokenTypes)[0] as keyof typeof TEMPLATE_CONFIG.tokenTypes;
+      tokenType = TEMPLATE_CONFIG.tokenTypes[firstTokenKey];
     }
 
     const cache = tokenCache as MultiTokenCache;
@@ -115,25 +111,17 @@ export const getAuthToken = async (tokenType?: TokenType): Promise<string> => {
       return typeCache.token;
     }
 
-    // Fetch new token for specific type
+    // Get token from environment
     const config = getConfig();
 
-    if (!config.auth || !(config.auth as any)[tokenType]) {
+    if (!config.auth || !((config.auth as any).hasOwnProperty(tokenType))) {
       throw new Error(`Token configuration not found for type: ${tokenType}`);
     }
 
-    // Fetch token (implement based on your API's requirements)
-    const response = await request(config.baseUrl)
-      .post('/auth/token')
-      .send({
-        grant_type: 'client_credentials',
-        token_type: tokenType,
-      })
-      .expect(200);
-
-    typeCache.token = response.body.access_token;
-    typeCache.expiry =
-      Date.now() + ((response.body.expires_in || 3600) - 300) * 1000;
+    // For MULTIPLE auth, tokens come from environment variables
+    typeCache.token = (config.auth as any)[tokenType];
+    // Static tokens don't expire, but cache for consistency
+    typeCache.expiry = Date.now() + 55 * 60 * 1000;
 
     return typeCache.token!;
   }
@@ -149,8 +137,8 @@ const getBearerToken = async (): Promise<string> => {
     throw new Error('Token endpoint not configured');
   }
 
-  const config = getConfig();
-  const response = await request(config.baseUrl)
+  const api = createRequest(); // Uses TEMPLATE_CONFIG to determine correct service
+  const response = await api
     .post(authConfig.tokenEndpoint)
     .send({
       username: authConfig.credentials?.username,
@@ -170,8 +158,8 @@ const getOAuth2Token = async (): Promise<string> => {
     throw new Error('OAuth2 token endpoint not configured');
   }
 
-  const config = getConfig();
-  const response = await request(config.baseUrl)
+  const api = createRequest(); // Uses TEMPLATE_CONFIG to determine correct service
+  const response = await api
     .post(authConfig.tokenEndpoint)
     .send({
       grant_type: 'client_credentials',

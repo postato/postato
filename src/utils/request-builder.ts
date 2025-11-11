@@ -39,7 +39,14 @@ export const createRequest = (serviceName?: ServiceName) => {
   // SINGLE ARCHITECTURE
   // =================================
   if (TEMPLATE_CONFIG.architecture === ARCHITECTURE.SINGLE) {
-    return request(config.baseUrl);
+    const baseUrl = (config as any).baseUrl;
+    if (!baseUrl) {
+      throw new Error(
+        `baseUrl not configured in environment file\n` +
+          `Ensure your environment config includes baseUrl when using ARCHITECTURE.SINGLE`
+      );
+    }
+    return request(baseUrl);
   }
 
   // =================================
@@ -47,7 +54,9 @@ export const createRequest = (serviceName?: ServiceName) => {
   // =================================
   if (TEMPLATE_CONFIG.architecture === ARCHITECTURE.MICROSERVICES) {
     if (!serviceName) {
-      serviceName = TEMPLATE_CONFIG.services.MAIN;
+      // Default to first available service when not specified
+      const firstServiceKey = Object.keys(TEMPLATE_CONFIG.services)[0] as keyof typeof TEMPLATE_CONFIG.services;
+      serviceName = TEMPLATE_CONFIG.services[firstServiceKey];
     }
 
     const services = (config as any).services;

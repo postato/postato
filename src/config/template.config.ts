@@ -1,16 +1,10 @@
 /**
- * Template Configuration - SINGLE SOURCE OF TRUTH
- *
- * This file controls the entire template's architecture and feature set.
- * AI agents modify this file based on Postman collection analysis.
- * Template users can manually override if needed.
- *
- * Change these constants to enable/disable features across the entire project.
+ * Template Configuration
+ * 
+ * This file defines the architecture patterns and settings for the API testing template.
+ * It is automatically updated by the CLI tool based on your Postman collection analysis.
  */
 
-// ================================
-// ARCHITECTURE PATTERNS
-// ================================
 export const ARCHITECTURE = {
   SINGLE: 'single',
   MICROSERVICES: 'microservices',
@@ -21,91 +15,44 @@ export const AUTH_PATTERN = {
   MULTIPLE: 'multiple',
 } as const;
 
-// ================================
-// ACTIVE CONFIGURATION
-// ================================
+export type ArchitectureType = typeof ARCHITECTURE[keyof typeof ARCHITECTURE];
+export type AuthPatternType = typeof AUTH_PATTERN[keyof typeof AUTH_PATTERN];
+export type ServiceName = typeof TEMPLATE_CONFIG.services[keyof typeof TEMPLATE_CONFIG.services];
+export type TokenType = typeof TEMPLATE_CONFIG.tokenTypes[keyof typeof TEMPLATE_CONFIG.tokenTypes];
+
+/**
+ * Template Configuration
+ * 
+ * These values are automatically detected and updated by the CLI tool.
+ * Manual changes may be overwritten on regeneration.
+ */
 export const TEMPLATE_CONFIG = {
   /**
-   * Architecture Pattern
-   * - ARCHITECTURE.SINGLE: One API, one base URL (default)
-   * - ARCHITECTURE.MICROSERVICES: Multiple APIs with different base URLs
-   *
-   * Agent modifies this based on Postman environment file analysis
+   * Architecture pattern: SINGLE (one base URL) or MICROSERVICES (multiple service URLs)
    */
   architecture: ARCHITECTURE.SINGLE as ArchitectureType,
 
   /**
-   * Authentication Pattern
-   * - AUTH_PATTERN.SINGLE: One token for all requests (default)
-   * - AUTH_PATTERN.MULTIPLE: Different tokens for different operations
-   *
-   * Agent modifies this based on Postman environment file analysis
+   * Authentication pattern: SINGLE (one auth token) or MULTIPLE (multiple token types)
    */
   authPattern: AUTH_PATTERN.SINGLE as AuthPatternType,
 
   /**
-   * SSL Certificate Support
-   * - true: Load custom certificates from certs/ folder
-   * - false: Use system default certificates (default)
-   *
-   * Agent modifies this based on certs/ folder detection
+   * SSL certificate support
    */
   sslEnabled: false,
 
   /**
-   * Service Names (only used if architecture = ARCHITECTURE.MICROSERVICES)
-   * Define your service names here - used in createRequest(TEMPLATE_CONFIG.services.PAYMENTS)
-   *
-   * Agent populates this from Postman environment variables ending with 'ApiUrl' or 'Url'
+   * Service URLs (for MICROSERVICES architecture)
+   * Maps service names to their URL environment variable keys
+   * This will be populated by the CLI when you run generation
    */
-  services: {
-    MAIN: 'main',
-    PAYMENTS: 'payments',
-    NOTIFICATIONS: 'notifications',
-  } as const,
+  services: {} as Record<string, string>,
 
   /**
-   * Token Types (only used if authPattern = AUTH_PATTERN.MULTIPLE)
-   * Define your token types here - used in getAuthToken(TEMPLATE_CONFIG.tokenTypes.ADMIN)
-   *
-   * Agent populates this from Postman environment variables containing 'token' or 'auth'
+   * Token types (for MULTIPLE auth pattern)
+   * Maps token type names to their environment variable keys
+   * This will be populated by the CLI when you run generation
    */
-  tokenTypes: {
-    ADMIN: 'admin',
-    SERVICE_ACCOUNT: 'serviceAccount',
-    CLIENT: 'client',
-  } as const,
+  tokenTypes: {} as Record<string, string>,
 };
-
-// ================================
-// DERIVED TYPES
-// ================================
-export type ArchitectureType = (typeof ARCHITECTURE)[keyof typeof ARCHITECTURE];
-export type AuthPatternType = (typeof AUTH_PATTERN)[keyof typeof AUTH_PATTERN];
-export type ServiceName = (typeof TEMPLATE_CONFIG.services)[keyof typeof TEMPLATE_CONFIG.services];
-export type TokenType = (typeof TEMPLATE_CONFIG.tokenTypes)[keyof typeof TEMPLATE_CONFIG.tokenTypes];
-
-// ================================
-// VALIDATION
-// ================================
-// Runtime validation to ensure configuration is valid
-const validArchitectures: ArchitectureType[] = [
-  ARCHITECTURE.SINGLE,
-  ARCHITECTURE.MICROSERVICES,
-];
-const validAuthPatterns: AuthPatternType[] = [
-  AUTH_PATTERN.SINGLE,
-  AUTH_PATTERN.MULTIPLE,
-];
-
-if (!validArchitectures.includes(TEMPLATE_CONFIG.architecture)) {
-  throw new Error(
-    `Invalid architecture: ${TEMPLATE_CONFIG.architecture}. Must be ARCHITECTURE.SINGLE or ARCHITECTURE.MICROSERVICES`
-  );
-}
-
-if (!validAuthPatterns.includes(TEMPLATE_CONFIG.authPattern)) {
-  throw new Error(
-    `Invalid auth pattern: ${TEMPLATE_CONFIG.authPattern}. Must be AUTH_PATTERN.SINGLE or AUTH_PATTERN.MULTIPLE`
-  );
-}

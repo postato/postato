@@ -1,9 +1,10 @@
 {
   "name": "postato",
   "version": "1.0.0",
-  "description": "Postato - TypeScript + SuperTest API testing template that converts Postman collections into version-controlled test suites",
+  "description": "Clean starter template for generating TypeScript API tests from Postman collections using @postato/shared CLI",
   "main": "index.js",
   "scripts": {
+    "generate": "postato-generate",
     "test": "jest",
     "test:dev": "TEST_ENV=dev jest",
     "test:staging": "TEST_ENV=staging jest",
@@ -18,22 +19,37 @@
     "typescript",
     "jest",
     "postman",
-    "test-automation"
+    "test-automation",
+    "code-generation",
+    "testing-framework",
+    "rest-api"
   ],
-  "author": "",
+  "author": "chatonode",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/postato/postato.git"
+  },
+  "bugs": {
+    "url": "https://github.com/postato/postato/issues"
+  },
+  "homepage": "https://github.com/postato/postato#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
-    "supertest": "^7.0.0",
-    "dotenv": "^16.4.5"
+    "@postato/shared": "^0.2.10",
+    "dotenv": "^16.4.5",
+    "supertest": "^7.0.0"
   },
   "devDependencies": {
-    "@types/supertest": "^6.0.2",
     "@types/jest": "^29.5.12",
     "@types/node": "^22.0.0",
+    "@types/supertest": "^6.0.2",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
-    "typescript": "^5.6.0",
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1"
+    "typescript": "^5.6.0"
   }
 }
