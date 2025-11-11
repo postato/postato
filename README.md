@@ -1,287 +1,277 @@
-# Postato
+# Postato 🥔
 
-> Zero-code migration from Postman to TypeScript test suites
+**Mash your Postman collections into crispy TypeScript tests.**
+
+We take your Postman requests and turn them into production-ready test fries—perfectly seasoned with TypeScript, Jest, and SuperTest.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
 [![Jest](https://img.shields.io/badge/Jest-29.7-green)](https://jestjs.io/)
-[![SuperTest](https://img.shields.io/badge/SuperTest-7.0-orange)](https://github.com/visionmedia/supertest)
+[![npm](https://img.shields.io/badge/%40postato%2Fshared-0.2.10-red)](https://www.npmjs.com/package/@postato/shared)
 
 ---
 
-## 🎯 What This Is
+## The Problem
 
-A template that transforms Postman collections into production-ready TypeScript test suites:
+❌ Manually rewriting 100+ Postman requests as tests  
+❌ Keeping tests in sync with Postman changes  
+❌ Your API tests live in Postman jail (no git, no CI/CD)  
+❌ Copy-pasting cURL commands like it's 2015
 
-1. Export your Postman collection → Drop it in `postman/v1/`
-2. Configure architecture/auth patterns → Edit `src/config/template.config.ts`
-3. Paste `AGENT_INSTRUCTIONS.md` into AI agent → Provide your Postman JSON
-4. AI generates 47+ files → Run `npm test`
+## The Solution
 
----
-
-## 🤖 For AI-Powered Test Generation
-
-**This is the PRIMARY workflow.** If you're using an AI agent (Claude, ChatGPT, etc.):
-
-**Prompt example:**
-```
-I have a Postman collection for our e-commerce API. 
-Please read AGENT_INSTRUCTIONS.md and generate the complete test suite.
-
-[Paste your postman_collection.json contents]
-```
-
-**The AI agent will generate:**
-- ✅ `src/tests/**/*.test.ts` - Jest test suites
-- ✅ `src/requests/**/*.request.ts` - SuperTest wrappers
-- ✅ `src/fixtures/**/*.fixture.ts` - Test data
-- ✅ `src/schemas/**/*.schema.ts` - JSON schemas
-- ✅ All organized by Postman folder structure
-
-**Key files for AI agents:**
-- `AGENT_INSTRUCTIONS.md` (1,400+ lines) - Complete generation guide
-- `src/config/template.config.ts` - Feature flags (architecture/auth patterns)
-- `src/utils/` - Pre-built helpers that AI-generated code uses
-
-**Result:** Zero manual test writing. AI reads your API contracts, generates everything.
+✅ One command to smash Postman into test files  
+✅ TypeScript + Jest + SuperTest (the good stuff)  
+✅ Git-friendly, CI/CD ready, actually maintainable  
+✅ Optional: Let AI sprinkle assertions on top (5-15 min)
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
-# 1. Clone and install
-git clone <repository-url> && cd postato
+# 1. Clone template
+git clone https://github.com/postato/postato.git my-api-tests
+cd my-api-tests
 npm install
 
-# 2. Configure environment
-cp .env.example .env.development
-# Edit .env.development with your API URLs and credentials
-
-# 3. Drop your Postman collection
+# 2. Add your Postman files
 cp your_collection.json postman/v1/postman_collection.json
+cp your_env.json postman/v1/dev.postman_environment.json
 
-# 4. Configure template patterns (edit src/config/template.config.ts)
-# Set: ARCHITECTURE (single/microservices), AUTH_PATTERN (single/multiple), sslEnabled (true/false)
+# 3. Generate tests
+npm run generate:base -- -c postman/v1/postman_collection.json -e postman/v1/dev.postman_environment.json -o .
 
-# 5. Generate tests with AI agent
-# Paste AGENT_INSTRUCTIONS.md + your collection into Claude/ChatGPT
+# 4. Add credentials to .env.development (CLI creates this file with structure)
 
-# 6. Run tests
+# 5. Run tests
 npm test
 ```
 
----
-
-## 📁 Project Structure
-
-```
-postato/
-│
-├── postman/
-│   └── v1/
-│       ├── postman_collection.json          # Your Postman collection (place here)
-│       └── *.postman_environment.json       # Optional: environment exports
-│
-├── certs/                                    # Optional: SSL certificates
-│   └── README.md                            # Certificate instructions
-│
-├── src/
-│   ├── config/
-│   │   ├── template.config.ts               # 🔧 Configure architecture/auth patterns
-│   │   ├── auth.config.ts                   # Authentication settings
-│   │   └── environments/                    # Dev/staging/prod configs
-│   │
-│   ├── tests/                               # 🤖 AI-generated Jest test suites
-│   ├── requests/                            # 🤖 AI-generated SuperTest wrappers
-│   ├── fixtures/                            # 🤖 AI-generated test data
-│   ├── schemas/                             # 🤖 AI-generated JSON schemas
-│   │
-│   └── utils/                               # Template utilities (pre-built)
-│       ├── auth-helper.ts                   # Authentication (adapts to config)
-│       ├── request-builder.ts               # Request building (adapts to config)
-│       ├── schema-validator.ts              # JSON schema validation
-│       └── assertion-helpers.ts             # Custom assertions
-│
-├── AGENT_INSTRUCTIONS.md                    # 🤖 Complete guide for AI agents
-├── .env.example                             # Environment variables template
-└── README.md                                # This file
-```
-
-**Files you touch:**
-- `postman/v1/postman_collection.json` - Your Postman export
-- `src/config/template.config.ts` - Architecture/auth pattern settings
-- `.env.development` - Environment-specific variables
-
-**Files AI generates:**
-- Everything in `src/tests/`, `src/requests/`, `src/fixtures/`, `src/schemas/`
+**Time: 2 minutes from Postman to running tests.**
 
 ---
 
-## ⚙️ Configuration
+## CLI Output
 
-### Template Configuration (`src/config/template.config.ts`)
+```
+🥔 Postato - Generate API Test Skeletons
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📂 Loading Postman files...
+   Collection: Your API Collection
+   Environment: Development
+
+🔍 Analyzing environment variables...
+   Architecture: MICROSERVICES (detected 3 services)
+   Auth Pattern: MULTIPLE (detected 4 tokens)
+
+⚙️  Updating template.config.ts...
+   ✓ Configuration updated
+
+📝 Generating files...
+   ✓ .env.development
+   ✓ src/config/environments/index.ts
+   ✓ Request wrappers: 50
+   ✓ Test files: 50
+   ✓ Folders: 12
+
+✅ Done! (1.8 seconds)
+
+Next steps:
+1. Add credentials to .env.development
+2. Optional: AI fills TODO markers (see README)
+3. Run: npm test
+```
+
+---
+
+## What Gets Generated
+
+**Request wrappers** (`src/requests/**/*.request.ts`) - ✅ Complete, ready to use
 
 ```typescript
-export const TEMPLATE_CONFIG = {
-  architecture: ARCHITECTURE.SINGLE,   // or MICROSERVICES
-  authPattern: AUTH_PATTERN.SINGLE,    // or MULTIPLE
-  sslEnabled: false,                   // or true
-};
+export const getUser = async (authToken: string, userId: string) => {
+  return createRequest()
+    .get(`/api/v1/users/${userId}`)
+    .set('Authorization', `Bearer ${authToken}`)
+}
 ```
 
-**All utilities auto-adapt** based on these flags. No code commenting/uncommenting required.
+**Test skeletons** (`src/tests/**/*.spec.ts`) - 🔄 Structure ready, TODOs for assertions
 
-### Environment Variables (`.env.development`)
+```typescript
+describe('GET /api/v1/users/:id', () => {
+  let authToken: string
 
-```env
-# Test Environment
-TEST_ENV=dev
+  beforeAll(async () => {
+    authToken = await authHelper.getToken()
+  })
 
-# Single API
-DEV_BASE_URL=https://api.dev.example.com
-DEV_API_KEY=your_dev_api_key
+  it('TODO: should return user details', async () => {
+    const response = await getUser(authToken, '123')
+    expect(response.status).toBe(200)
+    // TODO: Add response body assertions
+  })
 
-# Microservices (if ARCHITECTURE.MICROSERVICES)
-DEV_MAIN_API_URL=https://api.dev.example.com
-DEV_PAYMENTS_API_URL=https://payments.dev.example.com
-DEV_NOTIFICATIONS_API_URL=https://notifications.dev.example.com
-
-# Multiple Tokens (if AUTH_PATTERN.MULTIPLE)
-DEV_ADMIN_TOKEN=
-DEV_SERVICE_ACCOUNT_TOKEN=
-DEV_CLIENT_TOKEN=
-
-# SSL (if sslEnabled is true)
-DEV_SSL_ENABLED=false
-DEV_SSL_CERT_PATH=certs/dev-ca.crt
-
-# Authentication
-AUTH_USERNAME=test@example.com
-AUTH_PASSWORD=password123
+  it('should return 401 for invalid token', async () => {
+    const response = await getUser('invalid_token', '123')
+    expect(response.status).toBe(401)
+  })
+})
 ```
 
-### Switching Environments
+**Configuration** - Auto-detected from Postman environment
+
+- `template.config.ts` - Architecture pattern (SINGLE/MICROSERVICES, auth type)
+- `.env.development` - Environment variables (you add credentials)
+- `environments/index.ts` - Dynamic loader
+
+---
+
+## Optional: AI Fills TODOs
+
+**If you want complete assertions**, use AI to fill TODO markers.
+
+### Recommended Prompt for AI
+
+Paste this to Claude/ChatGPT along with `.agent/AGENT_INSTRUCTIONS.md`:
+
+```
+I've generated test skeletons using Postato CLI. The files are in src/tests/ with TODO markers.
+
+Please read .agent/AGENT_INSTRUCTIONS.md and complete the tests by:
+1. Replacing placeholder test data with realistic values
+2. Adding response body assertions (properties, types, values)
+3. Adding edge case tests (400, 404, 409, etc.)
+
+Work on one file at a time. Show me the complete updated file after each change.
+```
+
+**Time: 5-15 minutes for 50 test files**
+
+### Alternative: GitHub Copilot
+
+1. Open test file in VS Code
+2. Place cursor on TODO line
+3. Press Tab to accept suggestion
+4. Review and adjust
+
+**For detailed patterns and examples**, see [`.agent/AGENT_INSTRUCTIONS.md`](.agent/AGENT_INSTRUCTIONS.md)
+
+---
+
+## Configuration
+
+CLI detects your architecture automatically:
+
+| Your Postman Environment                         | Detected Pattern        |
+| ------------------------------------------------ | ----------------------- |
+| 1 base URL variable                              | **SINGLE** architecture |
+| 2+ service URLs (`mainApiUrl`, `paymentsApiUrl`) | **MICROSERVICES**       |
+| 1 token variable                                 | **SINGLE** auth         |
+| 2+ tokens (`auth_token`, `admin_token`)          | **MULTIPLE** auth       |
+
+**Example detection:**
+
+```typescript
+// From Postman environment variables:
+// - MAIN_API_URL
+// - PAYMENTS_API_URL
+// - admin_token
+// - client_token
+
+// Generated config:
+{
+  architecture: ARCHITECTURE.MICROSERVICES,
+  authPattern: AUTH_PATTERN.MULTIPLE,
+  services: { MAIN: 'main', PAYMENTS: 'payments' },
+  tokenTypes: { ADMIN: 'admin', CLIENT: 'client' }
+}
+```
+
+All utilities (`auth-helper.ts`, `request-builder.ts`) read this config and adapt automatically.
+
+---
+
+## Running Tests
 
 ```bash
-TEST_ENV=staging npm test
-TEST_ENV=prod npm test
+npm test                    # Run all tests
+npm test -- tests/products  # Run specific folder
+npm test -- --coverage      # With coverage report
+npm test -- --watch         # Watch mode
+
+TEST_ENV=staging npm test   # Use .env.staging
 ```
 
 ---
 
-## 🧪 Running Tests
+## Updating Collections
+
+When Postman changes:
 
 ```bash
-# Run all tests
+# 1. Export new collection
+cp new_collection.json postman/v1/postman_collection.json
+
+# 2. Regenerate (--overwrite replaces existing files)
+npm run generate:base -- -c postman/v1/postman_collection.json -e postman/v1/dev.postman_environment.json -o . --overwrite
+
+# 3. AI re-fills TODOs (only for new/modified files)
+
+# 4. Run tests
 npm test
-
-# Run tests for specific service
-npm test -- products
-
-# Run in watch mode
-npm test -- --watch
-
-# Run with coverage
-npm test -- --coverage
 ```
 
----
+**What happens:**
 
-## 🔐 Authentication
-
-The template handles authentication automatically based on your `template.config.ts` settings:
-
-```typescript
-// Single token (default) - automatically cached and reused
-const response = await request.get('/users/me');
-
-// Multiple tokens - specify which service
-const response = await request.get('/payments/history', { serviceType: 'payments' });
-```
-
-Auth tokens are automatically:
-- Fetched on first request
-- Cached for subsequent requests  
-- Refreshed when expired
-- Scoped per service (if using multiple auth)
-
-**Configuration** is in `src/config/auth.config.ts` and auto-adapts to your `AUTH_PATTERN` setting.
+- New endpoints → new files with TODOs
+- Modified endpoints → updated files
+- Deleted endpoints → old files remain (delete manually)
+- Config updates if architecture changes
 
 ---
 
-## 📝 Example Test (AI-Generated)
+## Known Limitations
 
-**Postman Request:**
-```
-Collection: "E-commerce API"
-└── Products
-    └── Get Product By ID
-```
+**No response examples in Postman?**  
+→ CLI still generates tests, but no JSON schema validation. AI uses basic assertions.
 
-**Generated Test:**
-```typescript
-// src/tests/products/get-product-by-id.test.ts
-import { request } from '../../utils/request-builder';
-import { validateSchema } from '../../utils/schema-validator';
-import productSchema from '../../schemas/products/product.schema';
+**Hardcoded IDs in URLs?** (e.g., `/users/abc-123-uuid`)  
+→ Generated as-is. Review and convert to parameters if needed.
 
-describe('Products - Get Product By ID', () => {
-  it('should return product details', async () => {
-    const response = await request.get('/products/1');
-    
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('id');
-    validateSchema(response.body, productSchema);
-  });
-});
-```
+**Non-standard variable names?**  
+→ CLI may misclassify. Check `template.config.ts` after generation.
+
+**Special characters in folder names?**  
+→ Auto-sanitized (e.g., `Products (CRUD)` → `products-crud/`)
+
+**Missing environment file?**  
+→ Defaults to SINGLE architecture + SINGLE auth. Configure manually in `template.config.ts`.
 
 ---
 
-## 📦 What's Included
+## Why Postato?
 
-- **Type-safe requests** - TypeScript + SuperTest wrappers
-- **JSON Schema validation** - Auto-validates API responses
-- **Dynamic configuration** - Adapts to single/microservices architectures
-- **Smart authentication** - Auto-caching with single/multiple token patterns
-- **SSL support** - Custom certificates for dev/staging
-- **Environment switching** - Dev/staging/prod via `TEST_ENV`
-- **Detailed reporting** - Jest test results with coverage
-- **AI-ready** - Full `AGENT_INSTRUCTIONS.md` for zero-code generation
+**vs. Manual Test Writing**
 
----
+- 100x faster (2 seconds vs. 3+ hours for 50 endpoints)
+- Zero inconsistencies in naming/structure
+- Regenerate on Postman changes
 
-## 🔄 Updating Collections
+**vs. AI-Only Generation**
 
-When your Postman collection changes:
+- No hallucinations (CLI is deterministic)
+- Free (no AI API costs)
+- Faster (2 seconds vs. 20+ minutes)
 
-1. Export new `postman_collection.json` to `postman/v1/`
-2. Run AI agent with prompt: "Update test suite for modified Postman collection"
-3. Agent compares old vs new, generates only changed files
+**vs. Other Tools** (Postman Codegen, Newman)
 
-See `AGENT_INSTRUCTIONS.md` Section 10 for AI update workflow.
+- Full TypeScript support
+- Adapts to single/microservices patterns
+- Professional test structure (Jest + SuperTest)
+- Version controlled, CI/CD ready
 
 ---
 
-## 📚 Documentation
-
-- **`AGENT_INSTRUCTIONS.md`** - Complete guide for AI agents (1,400+ lines)
-- **`certs/README.md`** - SSL certificate setup
-- **`postman/v1/README.md`** - Postman collection examples
-
----
-
-## 🎯 Key Concepts
-
-**Zero-Code Workflow**: Drop your Postman collection, let AI read `AGENT_INSTRUCTIONS.md`, generate 47+ files, run tests. No manual test writing required.
-
-**Feature Flags**: `template.config.ts` controls everything. Set `ARCHITECTURE: 'single'` or `'microservices'`, `AUTH_PATTERN: 'single'` or `'multiple'`, and all utilities adapt automatically.
-
-**Smart Utilities**: Every helper (`auth-helper.ts`, `request-builder.ts`, `schema-validator.ts`) reads `template.config.ts` at runtime and adjusts behavior. AI-generated code stays simple.
-
-**Override Strategy**: When regenerating tests, AI uses `REPLACE` mode (deletes old file, writes new one). No merging. Prevents drift and conflicts.
-
----
-
-**Need help?** Paste `AGENT_INSTRUCTIONS.md` into your AI agent and ask it to generate tests from your Postman collection.
+**Need detailed examples?** See [`.agent/AGENT_INSTRUCTIONS.md`](.agent/AGENT_INSTRUCTIONS.md) for complete pattern library and troubleshooting.

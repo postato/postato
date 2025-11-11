@@ -3,6 +3,7 @@
 ## When to Use This Folder
 
 If your API uses:
+
 - Self-signed certificates
 - Internal Certificate Authority (CA)
 - Custom SSL/TLS certificates
@@ -12,6 +13,7 @@ Place your certificate files here.
 ## Naming Convention
 
 Use environment-specific names:
+
 - `dev-ca.crt` (or `.pem`)
 - `staging-ca.crt`
 - `prod-ca.crt`
@@ -19,6 +21,7 @@ Use environment-specific names:
 ## Configuration
 
 Update your `.env.development`:
+
 ```env
 DEV_SSL_ENABLED=true
 DEV_SSL_CERT_PATH=certs/dev-ca.crt
