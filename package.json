@@ -4,7 +4,7 @@
   "description": "Clean starter template for generating TypeScript API tests from Postman collections using @postato/shared CLI",
   "main": "index.js",
   "scripts": {
-    "generate:base": "postato-generate",
+    "generate": "postato-generate",
     "test": "jest",
     "test:dev": "TEST_ENV=dev jest",
     "test:staging": "TEST_ENV=staging jest",

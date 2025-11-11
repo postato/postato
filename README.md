@@ -39,7 +39,7 @@ cp your_collection.json postman/v1/postman_collection.json
 cp your_env.json postman/v1/dev.postman_environment.json
 
 # 3. Generate tests
-npm run generate:base -- -c postman/v1/postman_collection.json -e postman/v1/dev.postman_environment.json -o .
+npm run generate -- -c postman/v1/postman_collection.json -e postman/v1/dev.postman_environment.json -o .
 
 # 4. Add credentials to .env.development (CLI creates this file with structure)
 
@@ -137,7 +137,8 @@ describe('GET /api/v1/users/:id', () => {
 Paste this to Claude/ChatGPT along with `.agent/AGENT_INSTRUCTIONS.md`:
 
 ```
-I've generated test skeletons using Postato CLI. The files are in src/tests/ with TODO markers.
+I've generated test skeletons using the CLI tool from @postato/shared. 
+The files are in src/tests/ with TODO markers.
 
 Please read .agent/AGENT_INSTRUCTIONS.md and complete the tests by:
 1. Replacing placeholder test data with realistic values
@@ -162,7 +163,7 @@ Work on one file at a time. Show me the complete updated file after each change.
 
 ## Configuration
 
-CLI detects your architecture automatically:
+The CLI tool from @postato/shared detects your architecture automatically:
 
 | Your Postman Environment                         | Detected Pattern        |
 | ------------------------------------------------ | ----------------------- |
@@ -215,7 +216,7 @@ When Postman changes:
 cp new_collection.json postman/v1/postman_collection.json
 
 # 2. Regenerate (--overwrite replaces existing files)
-npm run generate:base -- -c postman/v1/postman_collection.json -e postman/v1/dev.postman_environment.json -o . --overwrite
+npm run generate -- -c postman/v1/postman_collection.json -e postman/v1/dev.postman_environment.json -o . --overwrite
 
 # 3. AI re-fills TODOs (only for new/modified files)
 
@@ -235,13 +236,13 @@ npm test
 ## Known Limitations
 
 **No response examples in Postman?**  
-→ CLI still generates tests, but no JSON schema validation. AI uses basic assertions.
+→ The generator still creates tests, but no JSON schema validation. AI uses basic assertions.
 
 **Hardcoded IDs in URLs?** (e.g., `/users/abc-123-uuid`)  
 → Generated as-is. Review and convert to parameters if needed.
 
 **Non-standard variable names?**  
-→ CLI may misclassify. Check `template.config.ts` after generation.
+→ The generator may misclassify. Check `template.config.ts` after generation.
 
 **Special characters in folder names?**  
 → Auto-sanitized (e.g., `Products (CRUD)` → `products-crud/`)
@@ -261,7 +262,7 @@ npm test
 
 **vs. AI-Only Generation**
 
-- No hallucinations (CLI is deterministic)
+- No hallucinations (generator is deterministic)
 - Free (no AI API costs)
 - Faster (2 seconds vs. 20+ minutes)
 
