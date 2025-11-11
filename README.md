@@ -134,7 +134,7 @@ describe('GET /api/v1/users/:id', () => {
 
 ### Recommended Prompt for AI
 
-Paste this to Claude/ChatGPT along with `.agent/AGENT_INSTRUCTIONS.md`:
+Paste this to Claude/ChatGPT along with [`Agent Instructions`](.agent/AGENT_INSTRUCTIONS.md):
 
 ```
 I've generated test skeletons using the CLI tool from @postato/shared. 
@@ -157,7 +157,7 @@ Work on one file at a time. Show me the complete updated file after each change.
 3. Press Tab to accept suggestion
 4. Review and adjust
 
-**For detailed patterns and examples**, see [`.agent/AGENT_INSTRUCTIONS.md`](.agent/AGENT_INSTRUCTIONS.md)
+**For detailed patterns and examples**, see [`Agent Instructions`](.agent/AGENT_INSTRUCTIONS.md)
 
 ---
 
@@ -275,4 +275,4 @@ npm test
 
 ---
 
-**Need detailed examples?** See [`.agent/AGENT_INSTRUCTIONS.md`](.agent/AGENT_INSTRUCTIONS.md) for complete pattern library and troubleshooting.
+**Need detailed examples?** See [`Agent Instructions`](.agent/AGENT_INSTRUCTIONS.md) for complete pattern library and troubleshooting.
